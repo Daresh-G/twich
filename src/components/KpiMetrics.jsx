@@ -10,7 +10,9 @@ export default function KpiMetrics({
   autoTimedOutCount,
   totalMessages,
   openAiActive,
-  raidShieldActive
+  raidShieldActive,
+  isToxicityAlertActive = false,
+  lowSentimentSeconds = 0
 }) {
   const sentimentVal = Math.round(sentimentScore * 100);
   const autoActionRate = totalMessages > 0
@@ -39,10 +41,26 @@ export default function KpiMetrics({
       </div>
 
       {/* Metric 2: Live Sentiment Index */}
-      <div className="p-4 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:border-[#9146FF]/40 transition-colors">
+      <div
+        className={`p-4 rounded-xl transition-all ${
+          isToxicityAlertActive
+            ? 'bg-rose-500/10 dark:bg-rose-950/40 border-2 border-rose-500 ring-2 ring-rose-500/30 shadow-lg shadow-rose-900/20'
+            : lowSentimentSeconds > 0
+            ? 'bg-amber-500/10 dark:bg-amber-950/30 border border-amber-500/60 shadow-xs'
+            : 'bg-white dark:bg-slate-900/60 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:border-[#9146FF]/40'
+        }`}
+      >
         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
           <span className="font-semibold uppercase tracking-wider text-[11px]">Sentiment Index</span>
-          {sentimentVal >= 0 ? (
+          {isToxicityAlertActive ? (
+            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-rose-600 text-white animate-pulse">
+              🚨 SPIKE ALERT
+            </span>
+          ) : lowSentimentSeconds > 0 ? (
+            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-amber-500 text-slate-900">
+              {lowSentimentSeconds}s / 30s
+            </span>
+          ) : sentimentVal >= 0 ? (
             <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           ) : (
             <TrendingDown className="w-4 h-4 text-rose-600 dark:text-rose-400" />
@@ -51,24 +69,46 @@ export default function KpiMetrics({
         <div className="flex items-baseline gap-2">
           <span
             className={`text-2xl font-extrabold font-mono tabular-nums ${
-              sentimentVal > 20
-                ? 'text-emerald-600 dark:text-emerald-400'
-                : sentimentVal < -20
+              isToxicityAlertActive || sentimentVal < -20
                 ? 'text-rose-600 dark:text-rose-400'
+                : sentimentVal > 20
+                ? 'text-emerald-600 dark:text-emerald-400'
                 : 'text-amber-600 dark:text-amber-300'
             }`}
           >
             {sentimentVal > 0 ? `+${sentimentVal}` : sentimentVal}
           </span>
           <span className="text-xs uppercase font-mono font-bold text-slate-500 dark:text-slate-400">
-            {sentimentLabel === 'positive' ? 'High Hype' : sentimentLabel === 'negative' ? 'Toxicity Alert' : 'Neutral'}
+            {isToxicityAlertActive
+              ? `Toxicity Surge (${lowSentimentSeconds}s)`
+              : sentimentLabel === 'positive'
+              ? 'High Hype'
+              : sentimentLabel === 'negative'
+              ? 'Negative Sentiment'
+              : 'Neutral'}
           </span>
         </div>
         <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 flex items-center gap-1 font-mono">
           <span>Scale: -100 to +100</span>
           <span aria-hidden="true">·</span>
-          <span className={sentimentVal > 0 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : sentimentVal < 0 ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-500'}>
-            {sentimentVal > 30 ? 'Crowd Thriving' : sentimentVal < -30 ? 'Hostile Surge' : 'Balanced Stream'}
+          <span
+            className={
+              isToxicityAlertActive
+                ? 'text-rose-600 dark:text-rose-400 font-black animate-pulse'
+                : lowSentimentSeconds > 0
+                ? 'text-amber-600 dark:text-amber-400 font-bold'
+                : sentimentVal > 0
+                ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                : 'text-rose-600 dark:text-rose-400 font-bold'
+            }
+          >
+            {isToxicityAlertActive
+              ? `Hostile Surge (>30s)`
+              : lowSentimentSeconds > 0
+              ? `Depressed (${30 - lowSentimentSeconds}s to alert)`
+              : sentimentVal > 30
+              ? 'Crowd Thriving'
+              : 'Balanced Stream'}
           </span>
         </div>
       </div>

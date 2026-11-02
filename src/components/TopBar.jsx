@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Sparkles, Sliders, Monitor, Radio, Sun, Moon } from 'lucide-react';
+import { Shield, Sparkles, Sliders, Monitor, Radio, Sun, Moon, Play } from 'lucide-react';
 
 export default function TopBar({
   activeTab,
@@ -11,7 +11,8 @@ export default function TopBar({
   raidShieldActive,
   onToggleRaidShield,
   theme,
-  onToggleTheme
+  onToggleTheme,
+  onOpenDemoVideo
 }) {
   return (
     <header className="flex items-center justify-between gap-6 px-6 py-3 border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-[#0c101a]/95 backdrop-blur sticky top-0 z-40 transition-colors">
@@ -130,6 +131,17 @@ export default function TopBar({
         >
           <Monitor className="w-3.5 h-3.5" />
           <span>OBS Dock</span>
+        </button>
+
+        {/* 3-Minute Demo Video Walkthrough */}
+        <button
+          onClick={onOpenDemoVideo}
+          title="Watch 3-Minute English Project Demo Video"
+          className="px-3.5 py-1.5 text-xs font-extrabold text-white bg-gradient-to-r from-purple-600 via-[#9146FF] to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-md flex items-center gap-1.5 shadow-md shadow-[#9146FF]/30 border border-purple-400/30 transition-all hover:scale-[1.02] whitespace-nowrap shrink-0 animate-pulse"
+        >
+          <Play className="w-3.5 h-3.5 fill-current" />
+          <span>3-Min Demo Video</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
         </button>
 
         {/* Settings & OpenAI Key */}

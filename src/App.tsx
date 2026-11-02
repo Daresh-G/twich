@@ -11,6 +11,8 @@ import SettingsModal from './components/SettingsModal.jsx';
 import OpenAiSolutionView from './components/OpenAiSolutionView.jsx';
 import InteractiveGames from './components/InteractiveGames.jsx';
 import AiChatbot from './components/AiChatbot.jsx';
+import ToxicitySpikeAlert from './components/ToxicitySpikeAlert.jsx';
+import ProjectDemoModal from './components/ProjectDemoModal.jsx';
 
 import { TwitchIrcClient } from './services/twitchIrc.js';
 import { ChatSimulator } from './services/simulation.js';
@@ -67,6 +69,11 @@ export default function App() {
   const [hypeLevel, setHypeLevel] = useState(78);
   const [messagesPerSec, setMessagesPerSec] = useState(14);
   const [totalParsed, setTotalParsed] = useState(0);
+
+  // Toxicity Spike Alert Watchdog (< 0.3 for > 30 seconds)
+  const [lowSentimentSeconds, setLowSentimentSeconds] = useState(0);
+  const [isToxicityAlertDismissed, setIsToxicityAlertDismissed] = useState(false);
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
 
   // Audience Participation (Track 2 Focus)
   const [activePoll, setActivePoll] = useState<any>({
@@ -218,6 +225,20 @@ export default function App() {
 
     return () => clearInterval(interval);
   }, [currentSentimentScore, hypeLevel]);
+
+  // Telemetry Toxicity Spike Watchdog (Tracks continuous sentiment < 0.30 for > 30s)
+  useEffect(() => {
+    const watchdogTimer = setInterval(() => {
+      if (currentSentimentScore < 0.3) {
+        setLowSentimentSeconds((prev) => prev + 1);
+      } else {
+        setLowSentimentSeconds(0);
+        setIsToxicityAlertDismissed(false);
+      }
+    }, 1000);
+
+    return () => clearInterval(watchdogTimer);
+  }, [currentSentimentScore]);
 
   // Initialize Simulator on Mount
   useEffect(() => {
@@ -404,6 +425,38 @@ export default function App() {
     localStorage.setItem('twitch_pulse_openai_key', newKey);
   };
 
+  // Toxicity Alert State & Action Handlers
+  const isToxicityAlertActive = lowSentimentSeconds >= 30 && !isToxicityAlertDismissed;
+
+  const handleTriggerTestSpike = () => {
+    setCurrentSentimentScore(0.18);
+    setCurrentSentimentLabel('negative');
+    setLowSentimentSeconds(32);
+    setIsToxicityAlertDismissed(false);
+  };
+
+  const handleSimulateRecovery = () => {
+    setCurrentSentimentScore(0.72);
+    setCurrentSentimentLabel('positive');
+    setLowSentimentSeconds(0);
+    setIsToxicityAlertDismissed(false);
+  };
+
+  const handleDismissToxicityAlert = () => {
+    setIsToxicityAlertDismissed(true);
+  };
+
+  const handlePurgeNegativeFromAlert = () => {
+    handleClearAllFlagged();
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.sentiment && m.sentiment.score < 0
+          ? { ...m, actionTaken: 'purged' }
+          : m
+      )
+    );
+  };
+
   // If in OBS Dock Mode, render the minimalist streamer HUD
   if (isObsMode) {
     return (
@@ -440,6 +493,7 @@ export default function App() {
         onToggleRaidShield={handleToggleRaidShield}
         theme={theme}
         onToggleTheme={handleToggleTheme}
+        onOpenDemoVideo={() => setIsDemoModalOpen(true)}
       />
 
       {/* 2. Channel Connect & Scenario Control Bar */}
@@ -464,6 +518,21 @@ export default function App() {
         autoTimedOutCount={autoTimedOutCount}
         totalMessages={totalParsed}
         openAiActive={Boolean(apiKey)}
+        raidShieldActive={rules.raidShieldActive}
+        isToxicityAlertActive={isToxicityAlertActive}
+        lowSentimentSeconds={lowSentimentSeconds}
+      />
+
+      {/* 3.5. Telemetry Toxicity Spike Visual Notification Alert */}
+      <ToxicitySpikeAlert
+        isAlertActive={isToxicityAlertActive}
+        lowSentimentSeconds={lowSentimentSeconds}
+        currentSentimentScore={currentSentimentScore}
+        onAcknowledge={handleDismissToxicityAlert}
+        onArmRaidShield={handleToggleRaidShield}
+        onPurgeNegative={handlePurgeNegativeFromAlert}
+        onSimulateRecovery={handleSimulateRecovery}
+        onTriggerTestSpike={handleTriggerTestSpike}
         raidShieldActive={rules.raidShieldActive}
       />
 
@@ -570,6 +639,12 @@ export default function App() {
         onSaveApiKey={handleSaveApiKey}
         rules={rules}
         onSaveRules={(newRules) => setRules(newRules)}
+      />
+
+      {/* 3-Minute Project Demo Video Presentation Modal */}
+      <ProjectDemoModal
+        isOpen={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
       />
     </div>
   );
