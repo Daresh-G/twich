@@ -1,0 +1,6 @@
+{
+  "name": "Twitch Pulse AI",
+  "description": "Real-time Twitch streamer chat moderation, sentiment telemetry, and live audience engagement powered by OpenAI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
